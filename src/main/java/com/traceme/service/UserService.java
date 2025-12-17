@@ -41,11 +41,34 @@ public class UserService {
     public User getUserById(String id) {
         MethodTracer.traceMethodEntry(this, "getUserById", id);
         
-        // Intentionally vulnerable to SQL injection for IAST testing
-        String query = "SELECT * FROM users WHERE id = " + id;
-        System.out.println("[TRACE] Executing SQL: " + query);
-        System.out.println("[TRACE] Stack at query execution:");
+        // VULNERABILITY: SQL Injection - Untrusted input directly concatenated
+        System.out.println("\n[VULNERABILITY] SQL Injection Point Detected!");
+        System.out.println("[TAINT SOURCE] User input: " + id);
+        System.out.println("[TAINT SINK] SQL Query construction");
+        
+        // Intentionally vulnerable - String concatenation with user input
+        String query = buildVulnerableQuery(id);  // Expose in call stack
+        
+        System.out.println("[DANGEROUS SQL] " + query);
+        System.out.println("[MEMORY TRACE] Call stack at vulnerability:");
         Thread.dumpStack();
+        
+        // Execute vulnerable query
+        User result = executeUnsafeQuery(query);
+        return result;
+    }
+    
+    // Separate method to expose vulnerability in call stack
+    private String buildVulnerableQuery(String userInput) {
+        System.out.println("[VULNERABLE METHOD] Building SQL with untrusted input");
+        Thread.dumpStack();
+        String query = "SELECT * FROM users WHERE id = " + userInput;
+        return query;
+    }
+    
+    // Execute query - separate method to expose in stack
+    private User executeUnsafeQuery(String query) {
+        System.out.println("[EXECUTING VULNERABLE QUERY] " + query);
         
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
              Statement stmt = conn.createStatement();

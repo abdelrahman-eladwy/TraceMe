@@ -24,29 +24,45 @@ public class UserServlet extends HttpServlet {
         super.init();
         userService = new UserService();
         gson = new Gson();
+        System.out.println("[SERVLET INIT] UserServlet initialized - Ready for tracing");
     }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
         
+        System.out.println("\n[HTTP REQUEST] UserServlet.doGet() - Entry point");
+        System.out.println("[REQUEST URI] " + request.getRequestURI());
+        System.out.println("[QUERY STRING] " + request.getQueryString());
+        
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
         
         String userId = request.getParameter("id");
+        System.out.println("[UNTRUSTED INPUT] User ID parameter: " + userId);
+        System.out.println("[DATA FLOW] HTTP Request -> Servlet -> Service Layer");
+        Thread.dumpStack();
         PrintWriter out = response.getWriter();
         
         if (userId != null) {
-            // Get specific user - potential SQL injection point for testing
+            // VULNERABILITY PATH: User input flows to SQL query
+            System.out.println("[VULNERABILITY PATH] Untrusted input -> getUserById()");
+            System.out.println("[CALL CHAIN] HTTP -> Servlet -> UserService.getUserById() -> SQL");
+            
+            // Get specific user - SQL injection vulnerability
             User user = userService.getUserById(userId);
+            
+            System.out.println("[RESPONSE] Returning user data");
             out.print(gson.toJson(user));
         } else {
             // Get all users
+            System.out.println("[SAFE PATH] Getting all users - no untrusted input");
             List<User> users = userService.getAllUsers();
             out.print(gson.toJson(users));
         }
         
         out.flush();
+        System.out.println("[HTTP RESPONSE] Request completed\n");
     }
 
     @Override

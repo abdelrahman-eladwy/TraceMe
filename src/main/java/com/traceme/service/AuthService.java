@@ -37,24 +37,49 @@ public class AuthService {
     public boolean authenticate(String username, String password) {
         MethodTracer.traceMethodEntry(this, "authenticate", username, "***");
         
-        // Intentionally vulnerable SQL query for IAST testing
-        String query = "SELECT * FROM credentials WHERE username = '" + username + 
-                       "' AND password = '" + password + "'";
-        System.out.println("[TRACE] Auth SQL: " + query);
-        System.out.println("[TRACE] Stack at auth query:");
+        // VULNERABILITY: SQL Injection in Authentication
+        System.out.println("\n[VULNERABILITY] Authentication SQL Injection!");
+        System.out.println("[TAINT SOURCE] Username: " + username);
+        System.out.println("[TAINT SOURCE] Password: *** (hidden)");
+        System.out.println("[TAINT SINK] Authentication query");
+        
+        // Build vulnerable query - expose in call stack
+        String query = buildAuthQuery(username, password);
+        
+        System.out.println("[DANGEROUS AUTH SQL] " + query);
+        System.out.println("[MEMORY TRACE] Authentication vulnerability stack:");
         Thread.dumpStack();
         
+        // Execute vulnerable authentication
+        boolean result = executeAuthQuery(query);
+        return result;
+    }
+    
+    // Expose vulnerability construction in call stack
+    private String buildAuthQuery(String username, String password) {
+        System.out.println("[VULNERABLE AUTH] Building query with untrusted credentials");
+        Thread.dumpStack();
+        String query = "SELECT * FROM credentials WHERE username = '" + username + 
+                       "' AND password = '" + password + "'";
+        return query;
+    }
+    
+    // Execute authentication query - traceable in stack
+    private boolean executeAuthQuery(String query) {
+        System.out.println("[EXECUTING AUTH QUERY] " + query);
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
             
             boolean result = rs.next();
-            MethodTracer.traceMethodExit(this, "authenticate", result);
+            System.out.println("[AUTH RESULT] " + (result ? "SUCCESS" : "FAILED"));
+            MethodTracer.traceMethodExit(this, "executeAuthQuery", result);
             return result;
         } catch (SQLException e) {
-            MethodTracer.traceException(this, "authenticate", e);
+            System.err.println("[AUTH SQL EXCEPTION] " + e.getMessage());
+            MethodTracer.traceException(this, "executeAuthQuery", e);
             e.printStackTrace();
-            MethodTracer.traceMethodExit(this, "authenticate", false);
+            MethodTracer.traceMethodExit(this, "executeAuthQuery", false);
             return false;
         }
     }

@@ -31,17 +31,28 @@ public class LoginServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
         
+        System.out.println("\n[LOGIN ATTEMPT] Authentication request received");
+        
         String username = request.getParameter("username");
         String password = request.getParameter("password");
         
-        // Potential security vulnerabilities for IAST testing
+        System.out.println("[UNTRUSTED INPUT] Username: " + username);
+        System.out.println("[UNTRUSTED INPUT] Password: *** (hidden)");
+        System.out.println("[VULNERABILITY PATH] Login credentials -> AuthService.authenticate()");
+        System.out.println("[CALL STACK] HTTP POST -> LoginServlet -> AuthService -> SQL");
+        Thread.dumpStack();
+        
+        // VULNERABILITY: Authentication SQL Injection
         if (authService.authenticate(username, password)) {
+            System.out.println("[AUTH SUCCESS] User authenticated: " + username);
             HttpSession session = request.getSession(true);
             session.setAttribute("username", username);
             response.sendRedirect("dashboard");
         } else {
+            System.out.println("[AUTH FAILED] Invalid credentials for: " + username);
             request.setAttribute("error", "Invalid credentials");
             request.getRequestDispatcher("/WEB-INF/jsp/login.jsp").forward(request, response);
         }
+        System.out.println("[LOGIN COMPLETE] Authentication flow finished\\n");
     }
 }
