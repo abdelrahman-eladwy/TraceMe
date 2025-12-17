@@ -1,5 +1,7 @@
 package com.traceme.service;
 
+import com.traceme.aspect.MethodTracer;
+
 import java.sql.*;
 
 public class AuthService {
@@ -33,17 +35,26 @@ public class AuthService {
     }
 
     public boolean authenticate(String username, String password) {
+        MethodTracer.traceMethodEntry(this, "authenticate", username, "***");
+        
         // Intentionally vulnerable SQL query for IAST testing
         String query = "SELECT * FROM credentials WHERE username = '" + username + 
                        "' AND password = '" + password + "'";
+        System.out.println("[TRACE] Auth SQL: " + query);
+        System.out.println("[TRACE] Stack at auth query:");
+        Thread.dumpStack();
         
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
             
-            return rs.next();
+            boolean result = rs.next();
+            MethodTracer.traceMethodExit(this, "authenticate", result);
+            return result;
         } catch (SQLException e) {
+            MethodTracer.traceException(this, "authenticate", e);
             e.printStackTrace();
+            MethodTracer.traceMethodExit(this, "authenticate", false);
             return false;
         }
     }

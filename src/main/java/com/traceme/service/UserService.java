@@ -1,6 +1,7 @@
 package com.traceme.service;
 
 import com.traceme.model.User;
+import com.traceme.aspect.MethodTracer;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -38,8 +39,13 @@ public class UserService {
     }
 
     public User getUserById(String id) {
+        MethodTracer.traceMethodEntry(this, "getUserById", id);
+        
         // Intentionally vulnerable to SQL injection for IAST testing
         String query = "SELECT * FROM users WHERE id = " + id;
+        System.out.println("[TRACE] Executing SQL: " + query);
+        System.out.println("[TRACE] Stack at query execution:");
+        Thread.dumpStack();
         
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
              Statement stmt = conn.createStatement();
@@ -51,6 +57,7 @@ public class UserService {
                 user.setUsername(rs.getString("username"));
                 user.setEmail(rs.getString("email"));
                 user.setCreatedAt(rs.getString("created_at"));
+                MethodTracer.traceMethodExit(this, "getUserById", user);
                 return user;
             }
         } catch (SQLException e) {
